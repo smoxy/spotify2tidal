@@ -45,6 +45,10 @@ class Spotify2Tidal:
         self,
         tidal_username,
         tidal_password,
+        tidal_token_type,
+        tidal_access_token,
+        tidal_refresh_token,
+        tidal_expiry_time,
         spotify_username,
         spotify_client_id,
         spotify_client_secret,
@@ -58,7 +62,12 @@ class Spotify2Tidal:
             spotify_redirect_uri,
             spotify_discover_weekly_id,
         )
-        self.tidal = Tidal(tidal_username, tidal_password)
+        self.tidal = Tidal(
+            tidal_token_type,
+            tidal_access_token,
+            tidal_refresh_token,
+            tidal_expiry_time
+        )
 
     def copy_all_spotify_playlists(self):
         """Create all your spotify playlists in tidal."""

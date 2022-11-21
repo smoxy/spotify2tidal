@@ -47,7 +47,7 @@ class Spotify:
             playlists = result["items"]
 
             while result["next"]:
-                result = self.spotify_sesion.next(result)
+                result = self.spotify_session.next(result)
                 playlists.extend(result["items"])
         except spotipy.client.SpotifyException:
             self._refresh_expired_token()

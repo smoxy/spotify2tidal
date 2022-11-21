@@ -1,6 +1,7 @@
 import logging
 import requests
 import tidalapi
+import webbrowser
 
 
 class Tidal:
@@ -15,16 +16,25 @@ class Tidal:
         Tidal username
     password: str
         Tidal password
+    token_type: str
+        Tidal token type
+    access_token: str
+        Tidal access token
+    refresh_token: str
+        Tidal refresh token
+    expiry_time: datetime.datetime
+        Tidal expiration time
     """
-    def __init__(self, username, password):
-        self.tidal_session = self._connect(username, password)
+    def __init__(self, token_type, access_token, refresh_token, expiry_time):   #__init__(self, username, password):
+        #self.tidal_session = self._connect(username, password)
+        self.tidal_session = self._connectV2(token_type, access_token, refresh_token, expiry_time)
+        if not self.tidal_session:
+            self.tidal_session = self._connect()
 
     @property
     def own_playlists(self):
         """All playlists of the current user."""
-        return self.tidal_session.get_user_playlists(
-            self.tidal_session.user.id
-        )
+        return self.tidal_session.user.playlists()
 
     def add_track_to_playlist(self, playlist_id, name, artist):
         """Search tidal for a track and add it to a playlist.
@@ -154,10 +164,11 @@ class Tidal:
             + str(self.tidal_session.user.id)
             + "/playlists"
         )
-
+        print(tidal_create_playlist_url, playlist_name.strip(), f"x-tidal-sessionid:{self.tidal_session.session_id}", sep='')
+        requests.Request()
         r = requests.post(
             tidal_create_playlist_url,
-            data={"title": playlist_name, "description": ""},
+            data={"title": playlist_name.strip(), "description": ""},
             headers={"x-tidal-sessionid": self.tidal_session.session_id},
         )
         r.raise_for_status()
@@ -168,7 +179,7 @@ class Tidal:
 
         return r.json()["uuid"]
 
-    def _connect(self, username, password):
+    def _connect(self):
         """Connect to tidal and return a session object.
 
         Parameters
@@ -179,7 +190,33 @@ class Tidal:
             Tidal password
         """
         tidal_session = tidalapi.Session()
-        tidal_session.login(username, password)
+        login, future = tidal_session.login_oauth()
+        print('Login with the webbrowser: ' + login.verification_uri_complete)
+        url = login.verification_uri_complete
+        if not url.startswith('https://'):
+            url = 'https://' + url
+        webbrowser.open(url)
+        future.result()
+        return tidal_session
+
+    def _connectV2(self, token_type, access_token, refresh_token, expiry_time):
+        """Connect to tidal and return a session object.
+
+        Parameters
+        ----------
+        token_type: str
+            Tidal token type
+        access_token: str
+            Tidal access token
+        refresh_token: str
+            Tidal refresh token
+        expiry_time: datetime.datetime
+            Tidal expiration time
+        """
+        tidal_session = tidalapi.Session()
+        r = tidal_session.load_oauth_session(token_type, access_token, refresh_token, expiry_time)
+        if not r: #loggin not succesful
+            return r
         return tidal_session
 
     def _delete_playlist(self, playlist_id):
